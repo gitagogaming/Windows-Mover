@@ -12,7 +12,7 @@ from collections import namedtuple
 import pywinauto
 from time import sleep
 from ctypes.wintypes import tagPOINT
-from time import sleep
+from time import sleep, time
 from threading import Thread
 
 user32 = ctypes.WinDLL('user32')
@@ -264,14 +264,23 @@ def stateUpdate():
         TPClient.choiceUpdate("KillerBOSS.TP.Plugins.WindowMover.customMove.Window", [])
         runOnce = True
 
+    last_monitor_update_time = 0  # Variable to store the last update time for the monitor information
+
     while running:
-        monitor = [list(each.keys())[0].rstrip() for each in get_desktop()]
+        current_time = time()
 
-        if TPClient.choiceUpdateList.get("KillerBOSS.TP.Plugins.WindowMover.Windowpresets.Displays") != monitor:
-            TPClient.choiceUpdate("KillerBOSS.TP.Plugins.WindowMover.Windowpresets.Displays", monitor)
-            TPClient.choiceUpdate('KillerBOSS.TP.Plugins.WindowMover.Windowpresets.Advanced.Displays', monitor)
-            print('updating Display List', monitor)
+        # Check the 'monitor'-associated stuff every 10 minutes (600 seconds)
+        if current_time - last_monitor_update_time >= 600:
+            monitor = [list(each.keys())[0].rstrip() for each in get_desktop()]
 
+            if TPClient.choiceUpdateList.get("KillerBOSS.TP.Plugins.WindowMover.Windowpresets.Displays") != monitor:
+                TPClient.choiceUpdate("KillerBOSS.TP.Plugins.WindowMover.Windowpresets.Displays", monitor)
+                TPClient.choiceUpdate('KillerBOSS.TP.Plugins.WindowMover.Windowpresets.Advanced.Displays', monitor)
+                print('updating Display List', monitor)
+
+            last_monitor_update_time = current_time
+
+        # Check other stuff every 0.8 seconds
         if TPClient.choiceUpdateList.get("KillerBOSS.TP.Plugins.WindowMover.customMove.Window") != (processWindow := list_windows()):
             TPClient.choiceUpdate("KillerBOSS.TP.Plugins.WindowMover.customMove.Window", processWindow)
             print("Updating process list", processWindow)
@@ -313,28 +322,28 @@ def stateUpdate():
         except (IndexError,AttributeError,ConnectionResetError):
             pass
 
-        sleep(0.2) # add delay
+        sleep(0.8) # add delay
 
 @TPClient.on(TYPES.onAction)
 def ManageAction(data):
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.Windowpresets":
-        if data['data'][1]['value'] is not '':
+        if data['data'][1]['value'] != '':
             Move_Window(data['data'][1]['value'], data['data'][2]['value'], data['data'][0]['value'],data['data'][3]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.ResizeTo":
-        if data['data'][0]['value'] is not '': 
+        if data['data'][0]['value'] != '': 
             ResizeTo(data['data'][0]['value'], data['data'][1]['value'], data['data'][2]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.ResizeIncrease":
-        if data['data'][1]['value'] is not '':
+        if data['data'][1]['value'] != '':
             if data['data'][0]['value'] == "Increase":
                 increAndDecreResize(data['data'][1]['value'], int(data['data'][2]['value']), int(data['data'][3]['value']))
             elif data['data'][0]['value'] == "Decrease":
                 increAndDecreResize(data['data'][1]['value'], -int(data['data'][2]['value']), -int(data['data'][3]['value']))
     
     if data['actionId'] == 'KillerBOSS.TP.Plugins.WindowMover.SysActions':
-        if data['data'][1]['value'] is not '':
+        if data['data'][1]['value'] != '':
             SysAction(data['data'][1]['value'],data['data'][0]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.MoveByXandY":
-        if data['data'][0]['value'] is not '':
+        if data['data'][0]['value'] != '':
             if data['data'][3]['value'] == "Increase":
                 MovebyXY(data['data'][0]['value'], data['data'][1]['value'], data['data'][2]['value'])
             elif data['data'][3]['value'] == "Decrease":
@@ -343,28 +352,28 @@ def ManageAction(data):
         if data['data'][0]['value'] != '' and data['data'][1]['value'] != '' and data['data'][2]['value'] != '' and data['data'][3]['value'] != '' and data['data'][4]['value'] != '':
             CustomAction(data['data'][0]['value'],data['data'][1]['value'],data['data'][2]['value'],data['data'][3]['value'],data['data'][4]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.Advanced.MoveByXandY":
-        if data['data'][0]['value'] is not "" and data['data'][3]['value'] == 'Increase':
+        if data['data'][0]['value'] != "" and data['data'][3]['value'] == 'Increase':
             MovebyXY(data['data'][0]['value'], data['data'][1]['value'], data['data'][2]['value'])
-        elif data['data'][0]['value'] is not "" and data['data'][3]['value'] == "Decrease":
+        elif data['data'][0]['value'] != "" and data['data'][3]['value'] == "Decrease":
             MovebyXY(data['data'][0]['value'], -int(data['data'][1]['value']), -int(data['data'][2]['value']))
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.ResizeIncrease.Advanced":
-        if data['data'][1]['value'] is not "" and data['data'][0]['value'] == 'Increase':
+        if data['data'][1]['value'] != "" and data['data'][0]['value'] == 'Increase':
             increAndDecreResize(data['data'][1]['value'], data['data'][2]['value'], data['data'][3]['value'])
             sleep(0.02)
-        elif data['data'][1]['value'] is not "" and data['data'][0]['value'] == "Decrease":
+        elif data['data'][1]['value'] != "" and data['data'][0]['value'] == "Decrease":
             increAndDecreResize(data['data'][1]['value'], -int(data['data'][2]['value']), -int(data['data'][3]['value']))
             sleep(0.02)
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.Advanced.Windowpresets":
-        if data['data'][1]['value'] is not "":
+        if data['data'][1]['value'] != "":
             Move_Window(data['data'][1]['value'],data['data'][2]['value'],data['data'][0]['value'], data['data'][3]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.ResizeTo.Advanced":
-        if data['data'][0]['value'] is not '': 
+        if data['data'][0]['value'] != '': 
             ResizeTo(data['data'][0]['value'], data['data'][1]['value'], data['data'][2]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.Advanced.customMove":
-        if data['data'][0]['value'] is not '':
+        if data['data'][0]['value'] != '':
             CustomAction(data['data'][0]['value'],data['data'][1]['value'],data['data'][2]['value'],data['data'][3]['value'],data['data'][4]['value'])
     if data['actionId'] == "KillerBOSS.TP.Plugins.WindowMover.SysActions.Advanced":
-        if data['data'][1]['value'] is not '':
+        if data['data'][1]['value'] != '':
             SysAction(data['data'][1]['value'], data['data'][0]['value'])
 
 @TPClient.on(TYPES.onListChange)
@@ -399,17 +408,17 @@ def holdAction(data):
                 increAndDecreResize(data['data'][1]['value'], -int(data['data'][2]['value']), -int(data['data'][3]['value']))
                 sleep(0.02)
         elif TPClient.isActionBeingHeld('KillerBOSS.TP.Plugins.WindowMover.Advanced.MoveByXandY'):
-            if data['data'][0]['value'] is not "" and data['data'][3]['value'] == 'Increase':
+            if data['data'][0]['value'] != "" and data['data'][3]['value'] == 'Increase':
                 MovebyXY(data['data'][0]['value'], data['data'][1]['value'], data['data'][2]['value'])
                 sleep(0.02)
-            elif data['data'][0]['value'] is not "" and data['data'][3]['value'] == "Decrease":
+            elif data['data'][0]['value'] != "" and data['data'][3]['value'] == "Decrease":
                 MovebyXY(data['data'][0]['value'], -int(data['data'][1]['value']), -int(data['data'][2]['value']))
                 sleep(0.02)
         elif TPClient.isActionBeingHeld('KillerBOSS.TP.Plugins.WindowMover.ResizeIncrease.Advanced'):
-            if data['data'][1]['value'] is not "" and data['data'][0]['value'] == 'Increase':
+            if data['data'][1]['value'] != "" and data['data'][0]['value'] == 'Increase':
                 increAndDecreResize(data['data'][1]['value'], data['data'][2]['value'], data['data'][3]['value'])
                 sleep(0.02)
-            elif data['data'][1]['value'] is not "" and data['data'][0]['value'] == "Decrease":
+            elif data['data'][1]['value'] != "" and data['data'][0]['value'] == "Decrease":
                 increAndDecreResize(data['data'][1]['value'], -int(data['data'][2]['value']), -int(data['data'][3]['value']))
                 sleep(0.02)
         else:
